@@ -4,6 +4,7 @@ import ping from "./ping.ts";
 import token from './token.js';
 import models from './models.ts';
 import videos from './videos.ts';
+import batchColorize from './batch-colorize.ts';
 
 export default [
     {
@@ -18,6 +19,7 @@ export default [
                     endpoints: {
                         images: '/v1/images/generations',
                         compositions: '/v1/images/compositions',
+                        batchColorize: '/batch-colorize',
                         videos: '/v1/videos/generations',
                         models: '/v1/models',
                         health: '/ping'
@@ -30,5 +32,6 @@ export default [
     ping,
     token,
     models,
-    videos
+    videos,
+    batchColorize
 ];

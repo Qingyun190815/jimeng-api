@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>批量上色</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --surface-2: #eef2f5;
+      --line: #d8dee5;
+      --text: #19212a;
+      --muted: #697582;
+      --accent: #16856a;
+      --accent-2: #b85b2c;
+      --danger: #b42318;
+      --ok: #087443;
+      --warn: #ad6b00;
+      --shadow: 0 10px 30px rgba(27, 39, 51, 0.08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: var(--surface);
+      padding: 24px;
+      overflow: auto;
+    }
+
+    .workspace {
+      padding: 24px;
+      overflow: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    .status-pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 5px 10px;
+      white-space: nowrap;
+    }
+
+    .form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .picker-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .picker-row button {
+      white-space: nowrap;
+    }
+
+    label {
+      color: #344054;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 10px 11px;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    textarea {
+      min-height: 112px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(22, 133, 106, 0.15);
+    }
+
+    .toggles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      background: #fff;
+      min-height: 42px;
+    }
+
+    .toggle input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      padding: 0;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      min-height: 42px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .secondary {
+      background: #fff;
+      border-color: var(--line);
+      color: var(--text);
+    }
+
+    .danger {
+      background: #fff;
+      border-color: #f0b8b3;
+      color: var(--danger);
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .metric strong {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .progress-wrap {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .progress-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .bar {
+      height: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--surface-2);
+    }
+
+    .bar div {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #4f9d46);
+      transition: width 220ms ease;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 14px 16px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 520px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      background: #fbfcfd;
+      color: #475467;
+      font-size: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    td.path {
+      max-width: 360px;
+      word-break: break-all;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--surface-2);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .success {
+      background: #e6f4ed;
+      color: var(--ok);
+    }
+
+    .failed {
+      background: #fdecea;
+      color: var(--danger);
+    }
+
+    .running {
+      background: #fff2d6;
+      color: var(--warn);
+    }
+
+    .skipped {
+      background: #edf1f7;
+      color: #43546a;
+    }
+
+    .logs {
+      height: 520px;
+      overflow: auto;
+      margin: 0;
+      padding: 14px 16px;
+      background: #111820;
+      color: #d7e1ea;
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 36px 16px;
+      text-align: center;
+    }
+
+    .message {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .message.error {
+      color: var(--danger);
+    }
+
+    @media (max-width: 1040px) {
+      .app,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .sidebar,
+      .workspace {
+        padding: 16px;
+      }
+
+      .field-row,
+      .toggles,
+      .actions {
+        grid-template-columns: 1fr;
+      }
+
+      .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>批量上色</h1>
+        <span class="status-pill" id="connection">就绪</span>
+      </div>
+
+      <form class="form" id="jobForm">
+        <div class="field">
+          <label for="inputDir">输入文件夹</label>
+          <div class="picker-row">
+            <input id="inputDir" name="inputDir" placeholder="E:\Project\JMAI\input-images">
+            <button class="secondary" id="selectInputButton" type="button">选择</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="outputDir">输出文件夹</label>
+          <div class="picker-row">
+            <input id="outputDir" name="outputDir" placeholder="E:\Project\JMAI\colored-images">
+            <button class="secondary" id="selectOutputButton" type="button">选择</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="token">Session ID</label>
+          <input id="token" name="token" type="password" autocomplete="off" required>
+        </div>
+
+        <div class="field">
+          <label for="prompt">提示词</label>
+          <textarea id="prompt" name="prompt">请为这张图片进行专业上色，保持原始构图、线条、人物和细节不变，补充自然协调的色彩、光影和材质，画面干净，高质量。</textarea>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="model">模型</label>
+            <select id="model" name="model">
+              <option value="jimeng-4.5">jimeng-4.5</option>
+              <option value="jimeng-5.0">jimeng-5.0</option>
+              <option value="jimeng-4.6">jimeng-4.6</option>
+              <option value="jimeng-4.1">jimeng-4.1</option>
+              <option value="jimeng-4.0">jimeng-4.0</option>
+              <option value="nanobananapro">nanobananapro</option>
+              <option value="nanobanana">nanobanana</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="resolution">分辨率</label>
+            <select id="resolution" name="resolution">
+              <option value="1k">1k</option>
+              <option value="2k" selected>2k</option>
+              <option value="4k">4k</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="ratio">比例</label>
+            <select id="ratio" name="ratio">
+              <option value="1:1">1:1</option>
+              <option value="4:3">4:3</option>
+              <option value="3:4">3:4</option>
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+              <option value="3:2">3:2</option>
+              <option value="2:3">2:3</option>
+              <option value="21:9">21:9</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="sampleStrength">图生图强度</label>
+            <input id="sampleStrength" name="sampleStrength" type="number" min="0" max="1" step="0.05" value="0.5">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="negativePrompt">负面提示词</label>
+          <input id="negativePrompt" name="negativePrompt">
+        </div>
+
+        <div class="toggles">
+          <label class="toggle"><input name="recursive" type="checkbox">递归子目录</label>
+          <label class="toggle"><input name="overwrite" type="checkbox">覆盖结果</label>
+          <label class="toggle"><input name="intelligentRatio" type="checkbox">智能比例</label>
+          <label class="toggle"><input name="continueOnError" type="checkbox" checked>失败后继续</label>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="delayMs">间隔毫秒</label>
+            <input id="delayMs" name="delayMs" type="number" min="0" step="500" value="0">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="startButton" type="submit">开始上色</button>
+          <button class="danger" id="cancelButton" type="button" disabled>停止</button>
+        </div>
+
+        <div class="message" id="message"></div>
+      </form>
+    </aside>
+
+    <section class="workspace">
+      <section class="summary">
+        <div class="metric"><span>总数</span><strong id="total">0</strong></div>
+        <div class="metric"><span>当前</span><strong id="current">0</strong></div>
+        <div class="metric"><span>成功</span><strong id="success">0</strong></div>
+        <div class="metric"><span>失败</span><strong id="failed">0</strong></div>
+        <div class="metric"><span>跳过</span><strong id="skipped">0</strong></div>
+      </section>
+
+      <section class="progress-wrap">
+        <div class="progress-head">
+          <span id="jobTitle">没有正在运行的任务</span>
+          <span id="percent">0%</span>
+        </div>
+        <div class="bar"><div id="bar"></div></div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>图片队列</h2>
+            <button class="secondary" id="refreshButton" type="button">刷新</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>状态</th>
+                  <th>输入</th>
+                  <th>输出</th>
+                  <th>错误</th>
+                </tr>
+              </thead>
+              <tbody id="items">
+                <tr><td class="empty" colspan="4">等待任务</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>日志</h2>
+            <span class="status-pill" id="jobStatus">idle</span>
+          </div>
+          <pre class="logs" id="logs"></pre>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("jobForm");
+    const message = document.getElementById("message");
+    const startButton = document.getElementById("startButton");
+    const cancelButton = document.getElementById("cancelButton");
+    const refreshButton = document.getElementById("refreshButton");
+    const selectInputButton = document.getElementById("selectInputButton");
+    const selectOutputButton = document.getElementById("selectOutputButton");
+    const connection = document.getElementById("connection");
+    const jobStatus = document.getElementById("jobStatus");
+    const jobTitle = document.getElementById("jobTitle");
+    const logs = document.getElementById("logs");
+    const items = document.getElementById("items");
+    const bar = document.getElementById("bar");
+    const percent = document.getElementById("percent");
+    const metrics = {
+      total: document.getElementById("total"),
+      current: document.getElementById("current"),
+      success: document.getElementById("success"),
+      failed: document.getElementById("failed"),
+      skipped: document.getElementById("skipped"),
+    };
+
+    let activeJobId = localStorage.getItem("batchColorizeJobId") || "";
+    let pollTimer = null;
+    let inputDirectoryHandle = null;
+    let outputDirectoryHandle = null;
+    let selectedFiles = [];
+    let cancelRequested = false;
+
+    if (activeJobId) {
+      pollJob();
+      startPolling();
+    }
+
+    selectInputButton.addEventListener("click", async () => {
+      clearMessage();
+      try {
+        if (!supportsDirectoryPicker()) {
+          const directory = await chooseServerDirectory("选择输入文件夹");
+          inputDirectoryHandle = null;
+          selectedFiles = [];
+          form.inputDir.value = directory;
+          form.inputDir.dataset.picker = "server";
+          message.textContent = `已选择输入目录: ${directory}`;
+          return;
+        }
+
+        inputDirectoryHandle = await window.showDirectoryPicker({ mode: "read" });
+        selectedFiles = await collectImageFiles(inputDirectoryHandle, form.recursive.checked);
+        form.inputDir.value = `${inputDirectoryHandle.name} (${selectedFiles.length} 张图片)`;
+        form.inputDir.dataset.picker = "browser";
+        renderLocalJob({
+          id: "",
+          status: "ready",
+          outputLabel: outputDirectoryHandle ? outputDirectoryHandle.name : "",
+          total: selectedFiles.length,
+          current: 0,
+          success: 0,
+          failed: 0,
+          skipped: 0,
+          logs: [`已选择输入目录: ${inputDirectoryHandle.name}`, `找到 ${selectedFiles.length} 张图片。`],
+          items: selectedFiles.map((entry) => ({
+            input: entry.relativePath,
+            status: "queued",
+            outputs: [],
+            error: "",
+          })),
+        });
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+
+    selectOutputButton.addEventListener("click", async () => {
+      clearMessage();
+      try {
+        if (!supportsDirectoryPicker()) {
+          const directory = await chooseServerDirectory("选择输出文件夹");
+          outputDirectoryHandle = null;
+          form.outputDir.value = directory;
+          form.outputDir.dataset.picker = "server";
+          message.textContent = `已选择输出目录: ${directory}`;
+          return;
+        }
+
+        outputDirectoryHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+        form.outputDir.value = outputDirectoryHandle.name;
+        form.outputDir.dataset.picker = "browser";
+        message.textContent = `已选择输出目录: ${outputDirectoryHandle.name}`;
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+
+    form.recursive.addEventListener("change", async () => {
+      if (!inputDirectoryHandle) return;
+      selectedFiles = await collectImageFiles(inputDirectoryHandle, form.recursive.checked);
+      form.inputDir.value = `${inputDirectoryHandle.name} (${selectedFiles.length} 张图片)`;
+      metrics.total.textContent = selectedFiles.length;
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearMessage();
+      startButton.disabled = true;
+
+      try {
+        if (inputDirectoryHandle || outputDirectoryHandle) {
+          await runBrowserBatch();
+          return;
+        }
+
+        const body = readForm();
+        const response = await fetch("/v1/batch-colorize/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await parseResponse(response);
+        activeJobId = data.id;
+        localStorage.setItem("batchColorizeJobId", activeJobId);
+        renderJob(data);
+        startPolling();
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        startButton.disabled = false;
+      }
+    });
+
+    cancelButton.addEventListener("click", async () => {
+      if (!activeJobId) {
+        cancelRequested = true;
+        cancelButton.disabled = true;
+        return;
+      }
+      cancelButton.disabled = true;
+      try {
+        const response = await fetch(`/v1/batch-colorize/jobs/${activeJobId}/cancel`, { method: "POST" });
+        const data = await parseResponse(response);
+        renderJob(data);
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+
+    refreshButton.addEventListener("click", () => {
+      if (activeJobId) pollJob();
+    });
+
+    const imageExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff"]);
+
+    async function runBrowserBatch() {
+      if (!inputDirectoryHandle) {
+        throw new Error("请先点击输入文件夹旁边的“选择”。");
+      }
+      if (!outputDirectoryHandle) {
+        throw new Error("请先点击输出文件夹旁边的“选择”。");
+      }
+
+      const settings = readForm();
+      if (!settings.token) {
+        throw new Error("请填写 Session ID。");
+      }
+
+      activeJobId = "";
+      localStorage.removeItem("batchColorizeJobId");
+      cancelRequested = false;
+      cancelButton.disabled = false;
+
+      const rows = selectedFiles.map((entry) => ({
+        input: entry.relativePath,
+        status: "queued",
+        outputs: [],
+        error: "",
+      }));
+      const localJob = {
+        id: "browser-directory",
+        status: "running",
+        outputLabel: outputDirectoryHandle.name,
+        total: rows.length,
+        current: 0,
+        success: 0,
+        failed: 0,
+        skipped: 0,
+        logs: [`开始处理 ${rows.length} 张图片。`],
+        items: rows,
+      };
+
+      renderLocalJob(localJob);
+
+      for (let index = 0; index < selectedFiles.length; index += 1) {
+        if (cancelRequested) {
+          localJob.status = "cancelled";
+          localJob.logs.push("任务已停止。");
+          break;
+        }
+
+        const entry = selectedFiles[index];
+        const row = localJob.items[index];
+        localJob.current = index + 1;
+        row.status = "running";
+        localJob.logs.push(`[${localJob.current}/${localJob.total}] 开始处理 ${entry.relativePath}`);
+        renderLocalJob(localJob);
+
+        try {
+          const plannedName = buildOutputName(entry.relativePath, ".webp", 0);
+          if (!settings.overwrite && await outputExists(outputDirectoryHandle, plannedName)) {
+            row.status = "skipped";
+            row.outputs = [plannedName];
+            localJob.skipped += 1;
+            localJob.logs.push(`跳过已存在结果: ${plannedName}`);
+            renderLocalJob(localJob);
+            continue;
+          }
+
+          const urls = await generateFromSelectedFile(entry.file, settings);
+          row.outputs = [];
+          for (let resultIndex = 0; resultIndex < urls.length; resultIndex += 1) {
+            const outputName = buildOutputName(entry.relativePath, getExtensionFromUrl(urls[resultIndex]) || ".webp", resultIndex);
+            await writeUrlToDirectory(outputDirectoryHandle, outputName, urls[resultIndex]);
+            row.outputs.push(outputName);
+          }
+
+          row.status = "success";
+          localJob.success += 1;
+          localJob.logs.push(`完成 ${entry.relativePath}`);
+        } catch (error) {
+          row.status = "failed";
+          row.error = error.message;
+          localJob.failed += 1;
+          localJob.logs.push(`失败 ${entry.relativePath}: ${error.message}`);
+          if (!settings.continueOnError) {
+            localJob.status = "failed";
+            break;
+          }
+        }
+
+        renderLocalJob(localJob);
+
+        if (settings.delayMs > 0 && index < selectedFiles.length - 1) {
+          await sleep(settings.delayMs);
+        }
+      }
+
+      if (localJob.status === "running") {
+        localJob.status = localJob.failed > 0 ? "failed" : "completed";
+      }
+
+      localJob.logs.push("批处理结束。");
+      renderLocalJob(localJob);
+      cancelButton.disabled = true;
+    }
+
+    async function generateFromSelectedFile(file, settings) {
+      const formData = new FormData();
+      formData.append("prompt", settings.prompt);
+      formData.append("model", settings.model);
+      formData.append("ratio", settings.ratio);
+      formData.append("resolution", settings.resolution);
+      formData.append("sample_strength", String(settings.sampleStrength));
+      formData.append("response_format", "url");
+      formData.append("images", file, file.name);
+
+      if (settings.negativePrompt) {
+        formData.append("negative_prompt", settings.negativePrompt);
+      }
+      if (settings.intelligentRatio) {
+        formData.append("intelligent_ratio", "true");
+      }
+
+      const response = await fetch("/v1/images/compositions", {
+        method: "POST",
+        headers: {
+          Authorization: settings.token.toLowerCase().startsWith("bearer ")
+            ? settings.token
+            : `Bearer ${settings.token}`,
+        },
+        body: formData,
+      });
+      const data = await parseResponse(response);
+      const urls = (data.data || []).map((item) => item.url).filter(Boolean);
+      if (urls.length === 0) {
+        throw new Error("接口未返回图片 URL。");
+      }
+      return urls;
+    }
+
+    async function writeUrlToDirectory(rootHandle, relativePath, url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`下载生成图片失败: HTTP ${response.status}`);
+      }
+      const fileHandle = await getOutputFileHandle(rootHandle, relativePath, true);
+      const writable = await fileHandle.createWritable();
+      await writable.write(await response.blob());
+      await writable.close();
+    }
+
+    async function outputExists(rootHandle, relativePath) {
+      try {
+        await getOutputFileHandle(rootHandle, relativePath, false);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    async function getOutputFileHandle(rootHandle, relativePath, create) {
+      const parts = normalizeRelativePath(relativePath).split("/");
+      const fileName = parts.pop();
+      let current = rootHandle;
+      for (const part of parts) {
+        current = await current.getDirectoryHandle(part, { create });
+      }
+      return await current.getFileHandle(fileName, { create });
+    }
+
+    async function collectImageFiles(directoryHandle, recursive, prefix = "") {
+      const files = [];
+      for await (const [name, handle] of directoryHandle.entries()) {
+        const relativePath = prefix ? `${prefix}/${name}` : name;
+        if (handle.kind === "directory") {
+          if (recursive) {
+            files.push(...await collectImageFiles(handle, true, relativePath));
+          }
+          continue;
+        }
+
+        if (handle.kind === "file" && imageExtensions.has(getPathExtension(name))) {
+          files.push({
+            file: await handle.getFile(),
+            relativePath,
+          });
+        }
+      }
+
+      return files.sort((a, b) => a.relativePath.localeCompare(b.relativePath, "zh-Hans-CN"));
+    }
+
+    function renderLocalJob(job) {
+      renderJob({
+        id: job.id,
+        status: job.status,
+        options: { outputDir: job.outputLabel || "" },
+        total: job.total,
+        current: job.current,
+        success: job.success,
+        failed: job.failed,
+        skipped: job.skipped,
+        logs: job.logs,
+        items: job.items,
+      });
+    }
+
+    function buildOutputName(relativePath, extension, resultIndex) {
+      const normalized = normalizeRelativePath(relativePath);
+      const slashIndex = normalized.lastIndexOf("/");
+      const dir = slashIndex >= 0 ? normalized.slice(0, slashIndex + 1) : "";
+      const fileName = slashIndex >= 0 ? normalized.slice(slashIndex + 1) : normalized;
+      const dotIndex = fileName.lastIndexOf(".");
+      const baseName = dotIndex >= 0 ? fileName.slice(0, dotIndex) : fileName;
+      const suffix = resultIndex === 0 ? "" : `_${String(resultIndex + 1).padStart(2, "0")}`;
+      return `${dir}${baseName}_colorized${suffix}${extension}`;
+    }
+
+    function getExtensionFromUrl(value) {
+      try {
+        return getPathExtension(new URL(value).pathname);
+      } catch {
+        return "";
+      }
+    }
+
+    function getPathExtension(value) {
+      const clean = String(value).split("?")[0].toLowerCase();
+      const index = clean.lastIndexOf(".");
+      return index >= 0 ? clean.slice(index) : "";
+    }
+
+    function normalizeRelativePath(value) {
+      return String(value).replaceAll("\\", "/").replace(/^\/+/, "");
+    }
+
+    function supportsDirectoryPicker() {
+      return "showDirectoryPicker" in window;
+    }
+
+    async function chooseServerDirectory(title) {
+      const response = await fetch("/v1/batch-colorize/select-directory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      const data = await parseResponse(response);
+      return data.directory;
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function pollJob() {
+      if (!activeJobId) return;
+      try {
+        const response = await fetch(`/v1/batch-colorize/jobs/${activeJobId}`);
+        const data = await parseResponse(response);
+        renderJob(data);
+        connection.textContent = "已连接";
+      } catch (error) {
+        connection.textContent = "连接失败";
+        showError(error.message);
+        stopPolling();
+      }
+    }
+
+    function startPolling() {
+      stopPolling();
+      pollTimer = setInterval(pollJob, 2500);
+    }
+
+    function stopPolling() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
+    }
+
+    function readForm() {
+      const data = new FormData(form);
+      return {
+        inputDir: data.get("inputDir").trim(),
+        outputDir: data.get("outputDir").trim(),
+        token: data.get("token").trim(),
+        prompt: data.get("prompt").trim(),
+        model: data.get("model"),
+        ratio: data.get("ratio"),
+        resolution: data.get("resolution"),
+        sampleStrength: Number(data.get("sampleStrength")),
+        negativePrompt: data.get("negativePrompt").trim(),
+        recursive: data.get("recursive") === "on",
+        overwrite: data.get("overwrite") === "on",
+        intelligentRatio: data.get("intelligentRatio") === "on",
+        continueOnError: data.get("continueOnError") === "on",
+        delayMs: Number(data.get("delayMs") || 0),
+      };
+    }
+
+    async function parseResponse(response) {
+      const data = await response.json();
+      if (!response.ok || data.code && data.code !== 0) {
+        throw new Error(data.message || `HTTP ${response.status}`);
+      }
+      return data;
+    }
+
+    function renderJob(job) {
+      const done = job.status === "completed" || job.status === "failed" || job.status === "cancelled";
+      const progress = job.total ? Math.round((job.current / job.total) * 100) : 0;
+
+      metrics.total.textContent = job.total || 0;
+      metrics.current.textContent = job.current || 0;
+      metrics.success.textContent = job.success || 0;
+      metrics.failed.textContent = job.failed || 0;
+      metrics.skipped.textContent = job.skipped || 0;
+      jobStatus.textContent = job.status || "idle";
+      jobTitle.textContent = job.id ? `${job.id} · ${job.options.outputDir}` : "没有正在运行的任务";
+      percent.textContent = `${progress}%`;
+      bar.style.width = `${progress}%`;
+      logs.textContent = (job.logs || []).join("\n");
+      logs.scrollTop = logs.scrollHeight;
+      cancelButton.disabled = done || !job.id;
+
+      renderItems(job.items || []);
+
+      if (done) {
+        stopPolling();
+      }
+    }
+
+    function renderItems(rows) {
+      if (!rows.length) {
+        items.innerHTML = '<tr><td class="empty" colspan="4">等待任务</td></tr>';
+        return;
+      }
+
+      items.innerHTML = rows.map((item) => {
+        const statusClass = item.status === "success"
+          ? "success"
+          : item.status === "failed"
+            ? "failed"
+            : item.status === "running"
+              ? "running"
+              : item.status === "skipped"
+                ? "skipped"
+                : "";
+
+        return `
+          <tr>
+            <td><span class="badge ${statusClass}">${escapeHtml(item.status)}</span></td>
+            <td class="path">${escapeHtml(item.input)}</td>
+            <td class="path">${escapeHtml((item.outputs || []).join("\\n"))}</td>
+            <td class="path">${escapeHtml(item.error || "")}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function showError(text) {
+      message.textContent = text;
+      message.classList.add("error");
+    }
+
+    function clearMessage() {
+      message.textContent = "";
+      message.classList.remove("error");
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
